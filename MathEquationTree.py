@@ -1,3 +1,6 @@
+import re
+
+
 class TreeNode:
     def __init__(self, value):
         self.value = value
@@ -5,16 +8,20 @@ class TreeNode:
         self.right = None
         self.parent = None
 
+
 class Math_Equation_Tree:
     def __init__(self, expression):
-    def __init__(self, expression):
-        self.expression = expression
+        self.expression = self.clean_expression(expression)
         self.root = None
-        self.Create_Tree()
+        self.construct_tree()
 
-    def Create_Tree(self):
-        postfix_expression = self.infix_to_postfix(self.expression)
-        self.root = self.Build_Tree(postfix_expression)
+    def clean_expression(self, expression):
+        expression = re.sub(r'([+\-*/^()])', r' \1 ', expression)
+        return ' '.join(expression.split())
+
+    def construct_tree(self):
+        postfix_expression = self._infix_to_postfix(self.expression)
+        self.root = self._build_tree_from_postfix(postfix_expression)
 
         ''' Infix expression: The expression of the form "a operator b" (a + b) i.e., when an operator is in-between every pair of operands.
           Postfix expression: The expression of the form "a b operator" (ab+) i.e., When every pair of operands is followed by an operator.
@@ -31,30 +38,28 @@ Use Shunting Yard Algorithm algorit
 
         '''
 
-
-
-
-    def infix_to_postfix(self, expression): #Larger numbers assigned have higher priority in performing operations
+    def _infix_to_postfix(self, expression):
         precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
         output = []
         operators = []
 
-        def greater_precedence(op1, op2): #This section of code ensures that the operators are processed in the correct order according to their priorities
+        def greater_precedence(op1, op2):
             return precedence[op1] > precedence[op2]
 
         tokens = expression.split()
         for token in tokens:
-            if token.isnumeric():  # if token is an operand
+            if token.isalnum():
                 output.append(token)
             elif token == '(':
                 operators.append(token)
             elif token == ')':
-                while operators and operators[-1] != '(':  #Inside the while loop, the operators are removed from the stack and added to the output list.
+                while operators and operators[-1] != '(':
                     output.append(operators.pop())
-                operators.pop()  # pop '('
+                operators.pop()
             else:
                 while (operators and operators[-1] != '(' and
-                       greater_precedence(operators[-1], token)): #This function (greater_precedence) compares precedence and returns True if the operator has greater or equal precedence on the stack.
+                       (greater_precedence(operators[-1], token) or
+                        precedence[operators[-1]] == precedence[token])):
                     output.append(operators.pop())
                 operators.append(token)
 
@@ -63,14 +68,13 @@ Use Shunting Yard Algorithm algorit
 
         return output
 
-    def Build_Tree(self, postfix_expression):
+    def _build_tree_from_postfix(self, postfix_expression):
         stack = []
         for token in postfix_expression:
-            if token.isnumeric():
+            if token.isalnum():
                 stack.append(TreeNode(token))
             else:
                 right_node = stack.pop()
-
                 left_node = stack.pop()
                 root_node = TreeNode(token)
                 root_node.left = left_node
@@ -78,5 +82,16 @@ Use Shunting Yard Algorithm algorit
                 left_node.parent = root_node
                 right_node.parent = root_node
                 stack.append(root_node)
-        return stack[0]  # the root of the tree
+        return stack[0]
 
+
+def print_tree(node, level=0, prefix="R:   "):
+    if node is not None:
+        print_tree(node.right, level + 1, "   -> ")
+        print(' ' * 5 * level + prefix + str(node.value))
+        print_tree(node.left, level + 1, "   -> ")
+
+
+expression = "(x + 5) * 2 - 8"
+math_tree = Math_Equation_Tree(expression)
+print_tree(math_tree.root)
