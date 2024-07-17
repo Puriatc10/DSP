@@ -1,5 +1,7 @@
 import re
+import math
 
+DYADIC_OPERATIONS = ['+', '-', '*', '/']
 
 class TreeNode:
     def __init__(self, value):
@@ -7,13 +9,40 @@ class TreeNode:
         self.left = None
         self.right = None
         self.parent = None
+        self.var_name = None
 
+    def calculate_postfix(self):
+
+        if self.right is not None and self.right.value in DYADIC_OPERATIONS:
+            return eval(f'{self.left.calculate_postfix()} {self.right.value} {self.value}')
+        else:
+            return self.value
+
+    def calculate_infix(self):
+        if self.value in DYADIC_OPERATIONS:
+            return eval(f'{self.right.calculate_infix()} {self.value} {self.left.calculate_infix()}')
+        else:
+            return self.value
+
+    def add_var_name(self):
+        if self.value not in DYADIC_OPERATIONS and type(self.value) is not int:
+            self.var_name = self.value
+            self.value = None
+            if self.right is not None:
+                self.right.add_var_name()
+            if self.left is not None:
+                self.left.add_var_name()
+
+    def set_input(self, input_var):
+        if self.var_name in input_var.keys():
+            self.value = input_var[self.var_name]
 
 class Math_Equation_Tree:
     def __init__(self, expression):
         self.expression = self.clean_expression(expression)
         self.root = None
         self.construct_tree()
+        self.root.add_var_name()
 
     def clean_expression(self, expression):
         expression = re.sub(r'([+\-*/^()])', r' \1 ', expression)
@@ -85,13 +114,37 @@ Use Shunting Yard Algorithm algorit
         return stack[0]
 
 
+
+
+    def calculate_postfix(self, input_var):
+        self.root.set_input(input_var)
+        return self.root.calculate_postfix()
+
 def print_tree(node, level=0, prefix="R:   "):
     if node is not None:
         print_tree(node.right, level + 1, "   -> ")
         print(' ' * 5 * level + prefix + str(node.value))
         print_tree(node.left, level + 1, "   -> ")
 
+def print_formal_tree(node):
+    q = [(node, 1)]
+    current_level = 1
+    while q:
+        u, level = q.pop()
+        if level > current_level:
+            current_level = level
+            print()
+        print(u.value, end='\t')
+        if u.left is not None:
+            q.append((u.left, level + 1))
+        if u.right is not None:
+            q.append((u.right, level + 1))
+    print()
+
 
 expression = "(x + 5) * 2 - 8"
 math_tree = Math_Equation_Tree(expression)
 print_tree(math_tree.root)
+print('#####')
+print_formal_tree(math_tree.root)
+print(math_tree.calculate_postfix({'x': 5}))
