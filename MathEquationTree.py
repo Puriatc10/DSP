@@ -9,12 +9,13 @@ class TreeNode:
         self.left = None
         self.right = None
         self.parent = None
-        self.var_name = None
 
     def calculate_postfix(self):
 
-        if self.right is not None and self.right.value in DYADIC_OPERATIONS:
-            return eval(f'{self.left.calculate_postfix()} {self.right.value} {self.value}')
+        if self is not None and self.value in DYADIC_OPERATIONS:
+            if self.left is not None and self.right is not None:
+                p = f'{self.left.calculate_postfix()} {self.value} {self.right.calculate_postfix()}'
+                return eval(p)
         else:
             return self.value
 
@@ -24,48 +25,46 @@ class TreeNode:
         else:
             return self.value
 
-    def add_var_name(self):
-        if self.value not in DYADIC_OPERATIONS and type(self.value) is not int:
-            self.var_name = self.value
-            self.value = None
-            if self.right is not None:
-                self.right.add_var_name()
-            if self.left is not None:
-                self.left.add_var_name()
-
     def set_input(self, input_var):
-        if self.var_name in input_var.keys():
-            self.value = input_var[self.var_name]
+        if self.value in input_var.keys():
+            self.value = input_var[self.value]
+        if self.right is not None:
+            self.right.set_input(input_var)
+        if self.left is not None:
+            self.left.set_input(input_var)
 
 class Math_Equation_Tree:
-    def __init__(self, expression):
-        self.expression = self.clean_expression(expression)
-        self.root = None
+    def __init__(self, expressions):
+        self.expressions = self.clean_expression(expressions)
+        self.roots = {}
         self.construct_tree()
-        self.root.add_var_name()
 
-    def clean_expression(self, expression):
-        expression = re.sub(r'([+\-*/^()])', r' \1 ', expression)
-        return ' '.join(expression.split())
-
-    def construct_tree(self):
-        postfix_expression = self._infix_to_postfix(self.expression)
-        self.root = self._build_tree_from_postfix(postfix_expression)
+    def clean_expression(self, expressions):
+        exps = []
+        for exp in expressions:
+            exp = re.sub(r'([+\-*/^()])', r' \1 ', exp)
+            cleaned_expression = ' '.join(exp.split())
+            exps.append(cleaned_expression)
+        return exps
 
         ''' Infix expression: The expression of the form "a operator b" (a + b) i.e., when an operator is in-between every pair of operands.
-          Postfix expression: The expression of the form "a b operator" (ab+) i.e., When every pair of operands is followed by an operator.
-          Defining the priority of operators:
-The priority of each operator is specified.
-Using a stack (stack):
-The stack is used to store operators and manage their priority.
-The infix phrase from left to right:
-If the operand is (a number or a variable), it is added to the output.
-If it is an operation or parentheses, it is added to the stack or output based on priority and specific conditions.
-Move the rest of the operators from the stack to the output:
-Finally, all remaining operators on the stack are added to the output.
-Use Shunting Yard Algorithm algorit
-
+            Postfix expression: The expression of the form "a b operator" (ab+) i.e., When every pair of operands is followed by an operator.
+            Defining the priority of operators:
+            The priority of each operator is specified.
+            Using a stack (stack):
+            The stack is used to store operators and manage their priority.
+            The infix phrase from left to right:
+            If the operand is (a number or a variable), it is added to the output.
+            If it is an operation or parentheses, it is added to the stack or output based on priority and specific conditions.
+            Move the rest of the operators from the stack to the output:
+            Finally, all remaining operators on the stack are added to the output.
+            Use Shunting Yard Algorithm algorithm
         '''
+
+    def construct_tree(self):
+        for exp in self.expressions:
+            postfix_expression = self._infix_to_postfix(exp)
+            self.roots[exp] = self._build_tree_from_postfix(postfix_expression)
 
     def _infix_to_postfix(self, expression):
         precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
@@ -116,9 +115,10 @@ Use Shunting Yard Algorithm algorit
 
 
 
-    def calculate_postfix(self, input_var):
-        self.root.set_input(input_var)
-        return self.root.calculate_postfix()
+def calculate_postfix(math_tree, input_var):
+    for exp in math_tree.expressions:
+        math_tree.roots[exp].set_input(input_var)
+        print(math_tree.roots[exp].calculate_postfix())
 
 def print_tree(node, level=0, prefix="R:   "):
     if node is not None:
@@ -142,9 +142,11 @@ def print_formal_tree(node):
     print()
 
 
-expression = "(x + 5) * 2 - 8"
-math_tree = Math_Equation_Tree(expression)
-print_tree(math_tree.root)
-print('#####')
-print_formal_tree(math_tree.root)
-print(math_tree.calculate_postfix({'x': 5}))
+expressions = ["(x + 5) * y - 8",
+               "x + y",
+               "y + 3"]
+math_tree = Math_Equation_Tree(expressions)
+for exp in math_tree.expressions:
+    print_tree(math_tree.roots[exp])
+    print('##########')
+calculate_postfix( math_tree, {'x': 5, 'y': 4})
